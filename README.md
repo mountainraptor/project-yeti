@@ -15,3 +15,9 @@ Uploading New Firmware: http://vocore.io/wiki/index/id:14
 ** openwrt/package/base-files/files/etc/shadow
 ** openwrt/package/kernel/files/lib/wifi/mac80211.sh
 ** target/linux/ramips/dts/VOCORE.dts 
+
+# Flash Firmware
+* scp /Path/to/firmware/openwrt-ramips-rt305x-vocore-squashfs-sysupgrade.bin root@0.0.0.0:/tmp/
+* ssh root@0.0.0.0
+* mtd -e firmware write /tmp/openwrt-ramips-rt305x-vocore-squashfs-sysupgrade.bin firmware
+* reboot
