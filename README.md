@@ -16,6 +16,18 @@ Uploading New Firmware: http://vocore.io/wiki/index/id:14
 ** openwrt/package/kernel/files/lib/wifi/mac80211.sh
 ** target/linux/ramips/dts/VOCORE.dts 
 
+* update feeds
+** openwrt/scripts/feeds update -a
+** openwrt/scripts/feeds install luci
+
+# Make OpenWRT
+* make defconfig
+* make menuconfig
+* Target System: Ralink RT288x/RT3xxx, Subtarget: RT3x5x/RT5350, Target Profile: VoCore
+* Make sure to select 'tcpdump' under 'Network' and 'LuCI'
+* make
+* output will be under openwrt/bin/...
+
 # Flash Firmware
 * scp /Path/to/firmware/openwrt-ramips-rt305x-vocore-squashfs-sysupgrade.bin root@0.0.0.0:/tmp/
 * ssh root@0.0.0.0
