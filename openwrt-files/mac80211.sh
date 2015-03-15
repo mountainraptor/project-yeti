@@ -117,9 +117,8 @@ $ht_capab
 config wifi-iface
 	option device   radio$devidx
 	option network  lan
-	option mode     ap
-	option ssid     VoCore 
-	option encryption none
+	option mode     monitor
+	option hidden 1
 
 EOF
 	devidx=$(($devidx + 1))
