@@ -43,6 +43,12 @@ class LapEntry(object):
          return None
       if self.isNextValid(nextLapEntry) == False:
          print 'Invalid entry'
+         if (self.errors > nextLapEntry.errors):
+            print 'Using newer entry with less errors'
+            self.count = 1
+            self = nextLapEntry
+            print self
+            print nextLapEntry
          return None
       self.count += 1
       self.lastEpoch = nextLapEntry.epoch
