@@ -129,7 +129,7 @@ class lapDb(object):
       try:
          self.cursor.execute('SELECT * FROM lapTable LIMIT 1')
       except Exception as e:
-         self.cursor.execute('CREATE TABLE lapTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL)')
+         self.cursor.execute('CREATE TABLE lapTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
          self.conn.commit()
       
    def addSingleEntryIfValid(self, entry):
