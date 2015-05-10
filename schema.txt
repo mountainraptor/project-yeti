@@ -1,0 +1,2 @@
+CREATE TABLE lapTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL)
+1CREATE TABLE macTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL)
