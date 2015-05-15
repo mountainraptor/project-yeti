@@ -4,7 +4,7 @@
 STOP=01
 
 USE_PROCD=1
-PROG=/usr/sbin/logwifiids.py
+PROG=logwifiids.py
 SQLITEDB="/mnt/usb/wifi.sqlite"
 NAME=wifilogger
 PIDCOUNT=0
@@ -17,5 +17,5 @@ start_service()
 
 stop_service()
 {
-	killall -2 $(basename ${PROG})
+	killall -2 ${PROG}
 }
