@@ -4,7 +4,9 @@
 mkdir -p /mnt/usb
 if [ -b /dev/sda1 ];
 then
-        mount /dev/sda1 /mnt/usb
+	mount /dev/sda1 /mnt/usb
+	#make sure script is enables so it will stop process on shutdown/reboot
+	/etc/init.d/logwifiids start
 	/etc/init.d/logwifiids start
 fi
 
