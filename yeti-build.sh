@@ -65,20 +65,20 @@ else
 fi
 
 echo "Updating mac80211.sh for default monitor mode"
-cp -fv project-yeti/openwrt-files/mac80211.sh package/kernel/mac80211/files/lib/wifi/mac80211.sh
+cp -fpv project-yeti/openwrt-files/mac80211.sh package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 echo "Updating shadow file"
-cp -fv project-yeti/openwrt-files/shadow package/base-files/files/etc/shadow
+cp -fpv project-yeti/openwrt-files/shadow package/base-files/files/etc/shadow
 
 echo "Updating rc.local"
-cp -fv project-yeti/openwrt-files/rc.local package/base-files/files/etc/rc.local
+cp -fpv project-yeti/openwrt-files/rc.local package/base-files/files/etc/rc.local
 
 echo "Installing secret sauce"
-cp -fv project-yeti/wifi-sniffer/logwifiids.py package/base-files/files/sbin/
-cp -fv project-yeti/wifi-sniffer/logwifiids package/base-files/files/etc/init.d/
+cp -fpv project-yeti/wifi-sniffer/logwifiids.py package/base-files/files/sbin/
+cp -fpv project-yeti/wifi-sniffer/logwifiids package/base-files/files/etc/init.d/
 
 echo "Updating make configuration"
-cp -fv project-yeti/openwrt-files/.config .
+cp -fpv project-yeti/openwrt-files/.config .
 
 echo "Patched OpenWRT build!  Making now"
 
