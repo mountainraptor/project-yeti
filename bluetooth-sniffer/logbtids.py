@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
 import os, sys, argparse, subprocess, time, sqlite3
+import signal
 
 HASH_MAP_SIZE = 512
 HASH_MAP_STALE_TIME = 15
+p = None
 
 lapDb = None
 
@@ -80,6 +82,12 @@ def textToLapEntry(line):
    snr = int(s[8].split('=')[1])
    return LapEntry(time, channel, lap, errors, clk100ns, clk1, signal, noise, snr)
 
+def flushAllHashMap(dB, hashMap):
+   for i in range(0, len(hashMap)):
+      if (hashMap[i] != None):
+         dB.addEntryIfValid(hashMap[i])
+         hashMap[i] = None
+   dB.commitOutstandingEntries()
 
 def cleanupHashMap(dB, hashMap):
    curTime = int(time.time())
@@ -98,12 +106,20 @@ def isEntryStale(entry, curTime=None):
 def hashFunction(lapEntry):
    return lapEntry.lap % HASH_MAP_SIZE
 
+def preexec_function():
+    # Ignore the SIGINT signal by setting the handler to the standard
+    # signal handler SIG_IGN.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 def runUbertoothRx(dB, maxErrors):
+   global p
    hashMap = [None] * HASH_MAP_SIZE
-   p = subprocess.Popen(['unbuffer', 'ubertooth-rx', '-e', str(maxErrors), '-s'], stdout=subprocess.PIPE)
+   p = subprocess.Popen(['unbuffer', 'ubertooth-rx', '-e', str(maxErrors), '-s'], stdout=subprocess.PIPE, preexec_fn = preexec_function)
    while p.poll() is None:
       entry = p.stdout.readline()
       le = textToLapEntry(entry)
+      if (le == None):
+         continue
       cleanupHashMap(dB, hashMap)
       hashIndex = hashFunction(le)
       if (hashMap[hashIndex] != None):
@@ -119,7 +135,8 @@ def runUbertoothRx(dB, maxErrors):
       print hashMap[hashIndex]
       
       
-   print p.stdout.readlines()
+   print 'Flushing all hashmap entries and exiting'
+   flushAllHashMap(dB, hashMap)
 
 class lapDb(object):
    def __init__(self, dBFile):
@@ -145,7 +162,15 @@ class lapDb(object):
    def commitOutstandingEntries(self):
       self.conn.commit()
 
+def signal_handler(signal, frame):
+   print('You pressed Ctrl+C!')
+   if (p != None):
+      p.terminate()
+   else:
+      sys.exit(0)
+
 def main():
+   signal.signal(signal.SIGINT, signal_handler)
    parser = argparse.ArgumentParser(description='Log bluetooth LAPs to sqlite dB using ubertooth-rx')
    parser.add_argument('-d', '--database', help='SQLite dB file to store LAPs in', default='bt-laps.sqlite')
    parser.add_argument('-e', '--max-errors', help='Max number of errors in decoded packet for ubertooth', default=2)
