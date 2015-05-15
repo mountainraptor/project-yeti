@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
 import os, sys, argparse, subprocess, time, sqlite3
+import signal
 
 HASH_MAP_SIZE = 512
 HASH_MAP_STALE_TIME = 15
+p = None
 
 class MacEntry(object):
    def __init__(self, epoch, mac, snr, ssid):
@@ -45,7 +47,7 @@ class MacEntry(object):
       if (nextEntry.ssids != None):
          if (self.ssids == None):
             self.ssids = nextEntry.ssids
-         else:
+         elif (self.ssids.find(nextEntry.ssids) < 0):
             self.ssids = self.ssids + ',' + nextEntry.ssids
       return self.count
    
@@ -102,7 +104,6 @@ def cleanupHashMap(dB, hashMap):
    dB.commitOutstandingEntries()
 
 def isEntryStale(entry, curTime=None):
-   return False #TODO REMOVE THIS once real data is coming in
    if (curTime == None):
       curTime = int(time.time())
    return (entry.lastEpoch + HASH_MAP_STALE_TIME < curTime)
@@ -110,7 +111,7 @@ def isEntryStale(entry, curTime=None):
 def hashFunction(entry):
    return entry.mac % HASH_MAP_SIZE
 
-def runTcpDump(dB):
+def runTcpDumpTest(dB):
    hashMap = [None] * HASH_MAP_SIZE
    tf = file('./epoch-sample.out', 'r')
    while 1:
@@ -134,9 +135,40 @@ def runTcpDump(dB):
          hashMap[hashIndex] = le
          
       print hashMap[hashIndex]
-      
-      
    print p.stdout.readlines()
+
+def preexec_function():
+    # Ignore the SIGINT signal by setting the handler to the standard
+    # signal handler SIG_IGN.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+def runTcpDump(dB):
+   global p
+   hashMap = [None] * HASH_MAP_SIZE
+   print 'Starting capture'
+   p = subprocess.Popen(['tcpdump', '-i', 'wlan0', '-s0', '-tt', '-l', '-nne', 'wlan', 'type', 'mgt', 'subtype', 'probe-req'], stdout=subprocess.PIPE, preexec_fn = preexec_function)
+   while p.poll() is None:
+      cleanupHashMap(dB, hashMap)
+      entry = p.stdout.readline()
+      if (len(entry) == 0):
+         continue
+      le = textToMacEntry(entry)
+      if (le == None):
+         print 'Error decoding line ' + entry
+         continue
+      hashIndex = hashFunction(le)
+      if (hashMap[hashIndex] != None):
+         if (hashMap[hashIndex] == le):
+            hashMap[hashIndex].addNewEntry(le)
+         else:
+            print 'hash collision ' + str(hashMap[hashIndex]) + ' ' + str(le)
+            dB.addSingleEntryIfValid(hashMap[hashIndex])
+            hashMap[hashIndex] = le
+      else:
+         hashMap[hashIndex] = le
+      print hashMap[hashIndex]
+   print 'Flushing all hashmap entries and exiting'
+   flushAllHashMap(dB, hashMap)
 
 class macDb(object):
    def __init__(self, dBFile):
@@ -162,7 +194,15 @@ class macDb(object):
    def commitOutstandingEntries(self):
       self.conn.commit()
 
+def signal_handler(signal, frame):
+   print('You pressed Ctrl+C!')
+   if (p != None):
+      p.terminate()
+   else:
+      sys.exit(0)
+
 def main():
+   signal.signal(signal.SIGINT, signal_handler)
    parser = argparse.ArgumentParser(description='Log WIFI MAC addresses to sqlite dB using tcpdump')
    parser.add_argument('-d', '--database', help='SQLite dB file to store data in', default='wifi-macs.sqlite')
    
