@@ -1,0 +1,21 @@
+#!/bin/sh /etc/rc.common
+
+# Start in RC.local for now START=96
+STOP=01
+
+USE_PROCD=1
+PROG=/usr/sbin/logwifiids.py
+SQLITEDB="/mnt/usb/wifi.sqlite"
+NAME=wifilogger
+PIDCOUNT=0
+
+
+start_service()
+{
+	start-stop-daemon -S -b -x ${PROG} -- -d ${SQLITEDB}
+}
+
+stop_service()
+{
+	killall -2 $(basename ${PROG})
+}
