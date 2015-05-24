@@ -1,20 +1,23 @@
 #!/usr/bin/python
 
-import os, sys, argparse, subprocess, time, sqlite3
+import os, sys, argparse, subprocess, time, sqlite3, md5
 import signal
 
-HASH_MAP_SIZE = 512
-HASH_MAP_STALE_TIME = 15
 p = None
+STORE_EXTRA_INFO=False
+HASH_ADDRESS=True
 
 class MacEntry(object):
    def __init__(self, epoch, mac, snr, ssid):
       self.epoch = epoch
-      self.mac = mac
+      if (HASH_ADDRESS):
+         self.addr = buffer(md5.new(mac).digest())
+      else:
+         self.addr = buffer(mac)
       self.snr = snr
       self.count = 1
       self.lastEpoch = epoch
-      if (ssid != None):
+      if (ssid != None and STORE_EXTRA_INFO):
          self.ssids = ssid
       else:
          self.ssids = None
@@ -52,7 +55,7 @@ class MacEntry(object):
       return self.count
    
    def __repr__(self):
-      return 'MAC %s, count = %d, ssids = %s' % (hex(self.mac), self.count, self.ssids)
+      return 'AddrHash %s, ssid = %s, snr = %d' % (''.join('{:02x}'.format(ord(x)) for x in str(self.addr)), self.ssids, self.snr)
 
 def textToMacEntry(line):
    ssid = None
@@ -70,8 +73,7 @@ def textToMacEntry(line):
       elif (field.endswith('dB')):
          snr = int(field[:-2])
       elif (field.startswith('SA:')):
-         mactxt = field[3:].replace(':', '')
-         mac = int(mactxt, 16)
+         mac = field[3:].replace(':', '')
       elif (field.startswith('(')):
          ssid = field[1:]
          if (field.endswith(')')):
@@ -87,55 +89,18 @@ def textToMacEntry(line):
    except Exception as   e:
       return None
 
-def flushAllHashMap(dB, hashMap):
-   for i in range(0, len(hashMap)):
-      if (hashMap[i] != None):
-         dB.addEntryIfValid(hashMap[i])
-         hashMap[i] = None
-   dB.commitOutstandingEntries()
-
-def cleanupHashMap(dB, hashMap):
-   curTime = int(time.time())
-   for i in range(0, len(hashMap)):
-      if (hashMap[i] != None):
-         if (isEntryStale(hashMap[i])):
-            dB.addEntryIfValid(hashMap[i])
-            hashMap[i] = None
-   dB.commitOutstandingEntries()
-
-def isEntryStale(entry, curTime=None):
-   if (curTime == None):
-      curTime = int(time.time())
-   return (entry.lastEpoch + HASH_MAP_STALE_TIME < curTime)
-
-def hashFunction(entry):
-   return entry.mac % HASH_MAP_SIZE
-
 def runTcpDumpTest(dB):
-   hashMap = [None] * HASH_MAP_SIZE
    tf = file('./epoch-sample.out', 'r')
    while 1:
       entry = tf.readline()
-      print entry
+      #print entry
       le = textToMacEntry(entry)
       if (le == None):
          print 'Error decoding line ' + entry
-         flushAllHashMap(dB, hashMap)
+         dB.commitOutstandingEntries()
          sys.exit(1)
-      cleanupHashMap(dB, hashMap)
-      hashIndex = hashFunction(le)
-      if (hashMap[hashIndex] != None):
-         if (hashMap[hashIndex] == le):
-            hashMap[hashIndex].addNewEntry(le)
-         else:
-            print 'hash collision ' + str(hashMap[hashIndex]) + ' ' + str(le)
-            dB.addSingleEntryIfValid(hashMap[hashIndex])
-            hashMap[hashIndex] = le
-      else:
-         hashMap[hashIndex] = le
-         
-      print hashMap[hashIndex]
-   print p.stdout.readlines()
+      print le
+      dB.addEntryIfValid(le)
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -144,11 +109,9 @@ def preexec_function():
 
 def runTcpDump(dB):
    global p
-   hashMap = [None] * HASH_MAP_SIZE
    print 'Starting capture'
    p = subprocess.Popen(['tcpdump', '-i', 'wlan0', '-s0', '-tt', '-l', '-nne', 'wlan', 'type', 'mgt', 'subtype', 'probe-req'], stdout=subprocess.PIPE, preexec_fn = preexec_function)
    while p.poll() is None:
-      cleanupHashMap(dB, hashMap)
       entry = p.stdout.readline()
       if (len(entry) == 0):
          continue
@@ -156,29 +119,23 @@ def runTcpDump(dB):
       if (le == None):
          print 'Error decoding line ' + entry
          continue
-      hashIndex = hashFunction(le)
-      if (hashMap[hashIndex] != None):
-         if (hashMap[hashIndex] == le):
-            hashMap[hashIndex].addNewEntry(le)
-         else:
-            print 'hash collision ' + str(hashMap[hashIndex]) + ' ' + str(le)
-            dB.addSingleEntryIfValid(hashMap[hashIndex])
-            hashMap[hashIndex] = le
-      else:
-         hashMap[hashIndex] = le
-      print hashMap[hashIndex]
-   print 'Flushing all hashmap entries and exiting'
-   flushAllHashMap(dB, hashMap)
+      print le
+      dB.addEntryIfValid(le)      
+      dB.commitTimer()
+   
+   dB.commitOutstandingEntries()
 
 class macDb(object):
+   FLUSH_INTERVAL = 10
    def __init__(self, dBFile):
+      self.lastFlush = None
       self.conn = sqlite3.connect(dBFile)
       self.cursor = self.conn.cursor()
       #check to see if table is created
       try:
          self.cursor.execute('SELECT * FROM macTable LIMIT 1')
       except Exception as e:
-         self.cursor.execute('CREATE TABLE macTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
+         self.cursor.execute('CREATE TABLE macTable(addrHash INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
          self.conn.commit()
       
    def addSingleEntryIfValid(self, entry):
@@ -187,12 +144,19 @@ class macDb(object):
       
    def addEntryIfValid(self, entry):
       if (True): # For wifi entries are awlways considered valid
-         print 'Adding entry for ' + str(entry)
-         duration = entry.lastEpoch - entry.epoch
-         self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?, ?, ?)', (entry.mac, entry.epoch, 0, entry.count, duration, entry.snr, entry.ssids))
+         self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?)', (entry.addr, entry.epoch, 0, entry.snr, entry.ssids))
+         if (self.lastFlush == None):
+            self.lastFlush = time.time()
       
    def commitOutstandingEntries(self):
+      print 'Flushing database entries'
       self.conn.commit()
+      self.lastFlush = None
+      
+   def commitTimer(self):
+      if (self.lastFlush != None):
+         if (time.time() > self.lastFlush + macDb.FLUSH_INTERVAL):
+            self.commitOutstandingEntries()
 
 def signal_handler(signal, frame):
    print('You pressed Ctrl+C!')
