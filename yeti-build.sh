@@ -100,7 +100,7 @@ echo "Updating mac80211.sh for default monitor mode"
 cp -fpv $YETIDIR/openwrt-files/mac80211.sh $YETIDIR/openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 echo "Updating shadow file"
-cp -fpv $YETI_DIR/openwrt-files/shadow $YETIDIR/openwrt/package/base-files/files/etc/shadow
+cp -fpv $YETIDIR/openwrt-files/shadow $YETIDIR/openwrt/package/base-files/files/etc/shadow
 
 echo "Updating rc.local"
 cp -fpv $YETIDIR/openwrt-files/rc.local $YETIDIR/openwrt/package/base-files/files/etc/rc.local
