@@ -168,18 +168,20 @@ def signal_handler(signal, frame):
 def main():
    signal.signal(signal.SIGINT, signal_handler)
    parser = argparse.ArgumentParser(description='Log WIFI MAC addresses to sqlite dB using tcpdump')
-   parser.add_argument('-d', '--database', help='SQLite dB file to store data in', default='wifi-macs_0001.sqlite')
+   parser.add_argument('-d', '--database-folder', help='SQLite dB file to store data in', default='./')
    
    config = parser.parse_args()
    
-   while (os.path.isfile(config.database)):
-      num = int(config.database.split('.')[0].split('_')[1])
+   num = 0
+   while True:
+      dbpath = '%s/wifi-macs_%04d.sqlite' % (config.database_folder, num)
       num += 1
-      config.database = 'wifi-macs_%04d.sqlite' % (num)
-
-   print 'using db ' + config.database
+      if (not os.path.isfile(dbpath)):
+         break
       
-   dB = macDb(config.database)
+   print 'using db ' + dbpath
+      
+   dB = macDb(dbpath)
    
    runTcpDump(dB)
 
