@@ -15,9 +15,14 @@ fi
 git remote set-url origin git@github.com:mountainraptor/project-yeti.git
 
 git fetch
-git stash
 git rebase
-git stash pop
+
+if [ $? -eq 1 ];
+then
+	git stash
+	git rebase
+	git stash pop
+fi
 
 if [ $? -ne 0 ];
 then
