@@ -51,7 +51,7 @@ def textToLapEntry(line):
    #TODO try:
    time = int(s[0].split('=')[1])
    channel = int(s[1].split('=')[1])
-   lap = s[2].split('=')[1]
+   lap = s[2].split('=')[1].decode('hex')
    errors = int(s[3].split('=')[1])
    clk100ns = int(s[4].split('=')[1])
    clk1 = int(s[5].split('=')[1])
@@ -165,7 +165,7 @@ def main():
    
    num = 0
    while True:
-      dbpath = '%s/bt-macs_%04d.sqlite' % (config.database_folder, num)
+      dbpath = '%s/bt-db_%04d.sqlite' % (config.database_folder, num)
       num += 1
       if (not os.path.isfile(dbpath)):
          break

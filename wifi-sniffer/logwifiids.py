@@ -47,7 +47,7 @@ def textToMacEntry(line):
       elif (field.endswith('dB')):
          snr = int(field[:-2])
       elif (field.startswith('SA:')):
-         mac = field[3:].replace(':', '')
+         mac = field[3:].replace(':', '').decode('hex')
       elif (field.startswith('(')):
          ssid = field[1:]
          if (field.endswith(')')):
@@ -147,7 +147,7 @@ def main():
    
    num = 0
    while True:
-      dbpath = '%s/wifi-macs_%04d.sqlite' % (config.database_folder, num)
+      dbpath = '%s/wifi-db_%04d.sqlite' % (config.database_folder, num)
       num += 1
       if (not os.path.isfile(dbpath)):
          break
