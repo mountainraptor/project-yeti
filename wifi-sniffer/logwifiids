@@ -5,7 +5,7 @@ STOP=01
 
 USE_PROCD=1
 PROG=logwifiids.py
-SQLITEDB="/mnt/usb/wifi.sqlite"
+SQLITEDB="/mnt/usb/"
 NAME=wifilogger
 PIDCOUNT=0
 

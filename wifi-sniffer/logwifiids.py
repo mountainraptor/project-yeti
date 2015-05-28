@@ -15,7 +15,6 @@ class MacEntry(object):
       else:
          self.addr = buffer(mac)
       self.snr = snr
-      self.count = 1
       self.lastEpoch = epoch
       if (ssid != None and STORE_EXTRA_INFO):
          self.ssids = ssid
@@ -24,35 +23,10 @@ class MacEntry(object):
 
    def __eq__(self, other):
       try:
-         return (self.mac == other.mac)
+         return (self.addr == other.addr)
       except:
          return False
-
-   def isNextValid(self, nextEntry):
-      return True
    
-   def addNewEntry(self, nextEntry):
-      if (self.mac != nextEntry.mac):
-         print 'Error does not match'
-         return None
-      if self.isNextValid(nextEntry) == False:
-         print 'Invalid entry'
-         if (self.errors > nextEntry.errors):
-            print 'Using newer entry with less errors'
-            self.count = 1
-            self = nextEntry
-            print self
-            print nextEntry
-         return None
-      self.count += 1
-      self.lastEpoch = nextEntry.epoch
-      self.snr = max(self.snr, nextEntry.snr)
-      if (nextEntry.ssids != None):
-         if (self.ssids == None):
-            self.ssids = nextEntry.ssids
-         elif (self.ssids.find(nextEntry.ssids) < 0):
-            self.ssids = self.ssids + ',' + nextEntry.ssids
-      return self.count
    
    def __repr__(self):
       return 'AddrHash %s, ssid = %s, snr = %d' % (''.join('{:02x}'.format(ord(x)) for x in str(self.addr)), self.ssids, self.snr)
@@ -120,7 +94,7 @@ def runTcpDump(dB):
          print 'Error decoding line ' + entry
          continue
       print le
-      dB.addEntryIfValid(le)      
+      dB.addEntry(le)      
       dB.commitTimer()
    
    dB.commitOutstandingEntries()
@@ -135,18 +109,17 @@ class macDb(object):
       try:
          self.cursor.execute('SELECT * FROM macTable LIMIT 1')
       except Exception as e:
-         self.cursor.execute('CREATE TABLE macTable(addrHash INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
+         self.cursor.execute('CREATE TABLE macTable(addrHash BLOB NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
          self.conn.commit()
       
-   def addSingleEntryIfValid(self, entry):
+   def addSingleEntry(self, entry):
       self.addEntryIfValid(entry)
       self.commitOutstandingEntries()
       
-   def addEntryIfValid(self, entry):
-      if (True): # For wifi entries are awlways considered valid
-         self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?)', (entry.addr, entry.epoch, 0, entry.snr, entry.ssids))
-         if (self.lastFlush == None):
-            self.lastFlush = time.time()
+   def addEntry(self, entry):
+      self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?)', (entry.addr, entry.epoch, 0, entry.snr, entry.ssids))
+      if (self.lastFlush == None):
+         self.lastFlush = time.time()
       
    def commitOutstandingEntries(self):
       print 'Flushing database entries'
