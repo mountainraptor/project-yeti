@@ -1,2 +1,5 @@
-CREATE TABLE lapTable(addr INT NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, duration INT NOT NULL, snr INT NOT NULL, extrainfo STRING)
+CREATE TABLE lapTable(addrHash BLOB NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, extrainfo STRING)
 CREATE TABLE macTable(addrHash BLOB NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, count INT NOT NULL, extrainfo STRING)
+
+
+select datetime(epoch,'unixepoch'),hex(addrHash),errors,snr from lapTable;
