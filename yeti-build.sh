@@ -68,6 +68,13 @@ else
 	fi
 
 	git rebase
+	
+	if [ $? -ne 0 ];
+	then
+		git stash
+		git rebase
+		git stash pop
+	fi
 fi
 
 git reset --hard cb8b797
