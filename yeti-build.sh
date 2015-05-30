@@ -103,22 +103,22 @@ cd $YETIDIR
 
 
 
-echo "Updating mac80211.sh for default monitor mode"
+echo "YETI: Updating mac80211.sh for default monitor mode"
 cp -fpv $YETIDIR/openwrt-files/mac80211.sh $YETIDIR/openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
-echo "Updating shadow file"
+echo "YETI: Updating shadow file"
 cp -fpv $YETIDIR/openwrt-files/shadow $YETIDIR/openwrt/package/base-files/files/etc/shadow
 
-echo "Updating rc.local"
+echo "YETI: Updating rc.local"
 cp -fpv $YETIDIR/openwrt-files/rc.local $YETIDIR/openwrt/package/base-files/files/etc/rc.local
 
-echo "Installing secret sauce"
+echo "YETI: Installing secret sauce"
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids.py $YETIDIR/openwrt/package/base-files/files/sbin/
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids $YETIDIR/openwrt/package/base-files/files/etc/init.d/
 
-echo "Updating make configuration"
+echo "YETI: Updating make configuration"
 cp -fpv $YETIDIR/openwrt-files/.config $YETIDIR/openwrt
 
-echo "Patched OpenWRT build!  Making now"
+echo "YETI: Patched OpenWRT build!  Making now"
 cd $YETIDIR/openwrt
 make
