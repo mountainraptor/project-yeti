@@ -45,6 +45,6 @@ then
 	exit 1
 fi
 
-$NEWPARTITION=$DEVICE"1"
+NEWPARTITION="$DEVICE""1"
 
 mkdosfs -F 32 -n 'POTATO' -I $NEWPARTITION
