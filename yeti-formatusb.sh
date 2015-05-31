@@ -20,6 +20,7 @@ then
 		echo "formatting $DEVICE right meow"
 else
 		echo "aborting"
+		exit 1
 fi
 
 MOUNT=$(mount | grep /dev/sdb | wc -l)
