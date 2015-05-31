@@ -26,7 +26,7 @@ MOUNT=$(mount | grep /dev/sdb | wc -l)
 
 if  [[ $MOUNT -eq 1 ]];
 then
-	MOUNTED=$(mount | grep /dev/sdb | cut -f 1 -d " ")
+	MOUNTED=$(mount | grep $DEVICE | cut -f 1 -d " ")
 	echo "unmounting drive $MOUNTED"
 	umount $MOUNTED
 	if [[ $? -ne 0 ]];
@@ -44,4 +44,6 @@ then
 	exit 1
 fi
 
-mkdosfs -F 32 -n 'POTATO' -I /dev/sdb1 
+$NEWPARTITION=$DEVICE"1"
+
+mkdosfs -F 32 -n 'POTATO' -I $NEWPARTITION
