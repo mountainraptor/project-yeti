@@ -101,8 +101,6 @@ fi
 
 cd $YETIDIR
 
-
-
 echo "YETI: Updating mac80211.sh for default monitor mode"
 cp -fpv $YETIDIR/openwrt-files/mac80211.sh $YETIDIR/openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
@@ -111,6 +109,9 @@ cp -fpv $YETIDIR/openwrt-files/shadow $YETIDIR/openwrt/package/base-files/files/
 
 echo "YETI: Updating rc.local"
 cp -fpv $YETIDIR/openwrt-files/rc.local $YETIDIR/openwrt/package/base-files/files/etc/rc.local
+
+echo "YETI: Updating root profile to include ll"
+cp -fpv $YETIDIR/openwrt-files/profile $YETIDIR/openwrt/package/base-files/files/etc/profile
 
 echo "YETI: Installing secret sauce"
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids.py $YETIDIR/openwrt/package/base-files/files/sbin/
