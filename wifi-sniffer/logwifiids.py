@@ -8,7 +8,7 @@ STORE_EXTRA_INFO=False
 HASH_ADDRESS=True
 
 class MacEntry(object):
-   def __init__(self, epoch, mac, snr, ssid):
+   def __init__(self, epoch, mac, snr, ssid, uniqueId):
       self.epoch = epoch
       if (HASH_ADDRESS):
          self.addr = buffer(md5.new(mac).digest())
@@ -20,6 +20,7 @@ class MacEntry(object):
          self.ssids = ssid
       else:
          self.ssids = None
+      self.uniqueId = uniqueId
 
    def __eq__(self, other):
       try:
@@ -29,15 +30,17 @@ class MacEntry(object):
    
    
    def __repr__(self):
-      return 'AddrHash %s, ssid = %s, snr = %d' % (''.join('{:02x}'.format(ord(x)) for x in str(self.addr)), self.ssids, self.snr)
+      return 'Epoch = %f, AddrHash %s, ssid = %s, snr = %d id = %08x' % (self.epoch, ''.join('{:02x}'.format(ord(x)) for x in str(self.addr)), self.ssids, self.snr, self.uniqueId)
 
 def textToMacEntry(line):
    ssid = None
-   linefields = line.split(' ')
+   linefields = line.split()
    if (len(linefields) < 10):
       return None
-   ts = int(linefields[0].split('.')[0])
+   ts = float(linefields[0])
    decodingSSID = False
+   saDecoded = False
+   uniqueIdBytes = [0, 0, 0, 0]
    for field in linefields:
       if (decodingSSID):
          ssid += field
@@ -48,6 +51,7 @@ def textToMacEntry(line):
          snr = int(field[:-2])
       elif (field.startswith('SA:')):
          mac = field[3:].replace(':', '').decode('hex')
+         saDecoded = True
       elif (field.startswith('(')):
          ssid = field[1:]
          if (field.endswith(')')):
@@ -57,24 +61,45 @@ def textToMacEntry(line):
             decodingSSID = False
          else:
             decodingSSID = True
-   
+      elif (saDecoded == True):
+         if (len(field) == 4 or len(field) == 2):
+            try:
+               shortval = int(field, 16)
+               if (len(field) == 4):
+                  uniqueIdBytes.append((shortval >> 8) & 0xFF)
+                  uniqueIdBytes.append((shortval >> 0) & 0xFF)
+               else:
+                  uniqueIdBytes.append(shortval)
+               uniqueIdBytes = uniqueIdBytes[-4:]
+            except: pass
    try:
-      return MacEntry(ts, mac, snr, ssid)
-   except Exception as   e:
+      uniqueId = uniqueIdBytes[0] << 24 | uniqueIdBytes[1] << 16 | uniqueIdBytes[2] << 8 | uniqueIdBytes[3]
+      return MacEntry(ts, mac, snr, ssid, uniqueId)
+   except Exception as e:
       return None
 
 def runTcpDumpTest(dB):
    tf = file('./epoch-sample.out', 'r')
+   entry = ''
    while 1:
-      entry = tf.readline()
-      #print entry
-      le = textToMacEntry(entry)
-      if (le == None):
-         print 'Error decoding line ' + entry
+      line = tf.readline()
+      if (len(line) == 0):
+         print 'EOF'
          dB.commitOutstandingEntries()
          sys.exit(1)
-      print le
-      dB.addEntryIfValid(le)
+      if (len(entry) and not line.startswith('\t')):
+         print entry
+         le = textToMacEntry(entry)
+         if (le == None):
+            print 'Error decoding entry ' + entry
+            dB.commitOutstandingEntries()
+            sys.exit(1)
+         print le
+         dB.addEntry(le)
+         dB.commitTimer()
+         entry = line
+      else:
+         entry += line
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -84,18 +109,24 @@ def preexec_function():
 def runTcpDump(dB):
    global p
    print 'Starting capture'
-   p = subprocess.Popen(['tcpdump', '-i', 'wlan0', '-s0', '-tt', '-l', '-nne', 'wlan', 'type', 'mgt', 'subtype', 'probe-req'], stdout=subprocess.PIPE, preexec_fn = preexec_function)
+   p = subprocess.Popen(['tcpdump', '-i', 'wlan0', '-s512', '-tt', '-l', '-nn', '-e', '-x', 'wlan', 'type', 'mgt', 'subtype', 'probe-req'], stdout=subprocess.PIPE, preexec_fn = preexec_function)
+   entry = ''
    while p.poll() is None:
-      entry = p.stdout.readline()
-      if (len(entry) == 0):
+      line = p.stdout.readline()
+      if (len(line) == 0):
          continue
-      le = textToMacEntry(entry)
-      if (le == None):
-         print 'Error decoding line ' + entry
-         continue
-      print le
-      dB.addEntry(le)      
-      dB.commitTimer()
+      if (len(entry) and not line.startswith('\t')):
+         #print entry
+         le = textToMacEntry(entry)
+         if (le == None):
+            print 'Error decoding line ' + entry
+            continue
+         print le
+         dB.addEntry(le)
+         dB.commitTimer()
+         entry = line
+      else:
+         entry += line
    
    dB.commitOutstandingEntries()
 
@@ -109,7 +140,7 @@ class macDb(object):
       try:
          self.cursor.execute('SELECT * FROM macTable LIMIT 1')
       except Exception as e:
-         self.cursor.execute('CREATE TABLE macTable(addrHash BLOB NOT NULL, epoch INT NOT NULL, errors INT NOT NULL, snr INT NOT NULL, extrainfo STRING)')
+         self.cursor.execute('CREATE TABLE macTable(addrHash BLOB NOT NULL, epoch REAL NOT NULL, errors INT NOT NULL, snr INT NOT NULL, uniqueId INT NOT NULL, extrainfo STRING)')
          self.conn.commit()
       
    def addSingleEntry(self, entry):
@@ -117,7 +148,7 @@ class macDb(object):
       self.commitOutstandingEntries()
       
    def addEntry(self, entry):
-      self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?)', (entry.addr, entry.epoch, 0, entry.snr, entry.ssids))
+      self.cursor.execute('INSERT INTO macTable VALUES(?, ?, ?, ?, ?, ?)', (entry.addr, entry.epoch, 0, entry.snr, entry.uniqueId, entry.ssids))
       if (self.lastFlush == None):
          self.lastFlush = time.time()
       
