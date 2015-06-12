@@ -12,6 +12,10 @@ PIDCOUNT=0
 
 start_service()
 {
+	/etc/init.d/gpsd start
+	sleep 1
+	/etc/init.d/ntpd start
+	sleep 1
 	start-stop-daemon -S -b -x ${PROG} -- -d ${SQLITEDB}
 }
 
