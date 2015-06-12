@@ -77,7 +77,7 @@ else
 	fi
 fi
 
-git reset --hard cb8b797
+#git reset --hard cb8b797
 
 echo "YETI: Updating remote feeds"
 
@@ -173,6 +173,16 @@ cp -fpv $YETIDIR/openwrt-files/profile $YETIDIR/openwrt/package/base-files/files
 echo "YETI: Installing secret sauce"
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids.py $YETIDIR/openwrt/package/base-files/files/sbin/
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids $YETIDIR/openwrt/package/base-files/files/etc/init.d/
+
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+echo "YETI: Temoporary Open SSL patch-----------------------------------"
+cp -fpv $YETIDIR/openwrt-files/Makefile $YETIDIR/openwrt/package/libs/openssl/Makefile
+
 
 echo "YETI: Updating make configuration"
 cp -fpv $YETIDIR/openwrt-files/.config $YETIDIR/openwrt
