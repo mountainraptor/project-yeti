@@ -187,6 +187,12 @@ if [ $? -ne 0 ]; then
 	echo "Error applying PPS gpio pin patch"
 	exit 1
 fi 
+git checkout base-files/files/etc/inittab
+patch -p1 -i $YETIDIR/gps/999-Carambola-disable-serial-console.patch
+if [ $? -ne 0 ]; then
+	echo "Error applying serial console disable patch"
+	exit 1
+fi 
 
 echo "YETI: Patched OpenWRT build!  Making now"
 cd $YETIDIR/openwrt
