@@ -193,6 +193,7 @@ if [ $? -ne 0 ]; then
 	echo "Error applying serial console disable patch"
 	exit 1
 fi 
+cp -fpv $YETIDIR/gps/ntp.conf feeds/packages/net/ntpd/files/ntp.conf
 
 echo "YETI: Patched OpenWRT build!  Making now"
 cd $YETIDIR/openwrt
