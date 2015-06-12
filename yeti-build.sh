@@ -43,9 +43,9 @@ REMOTE=$(git remote -v | grep fetch)
 
 if [ "$OPENWRTREMOTE" != "$REMOTE" ];
 then
-        echo "YETI: could not find correct remote for openwrt, clearing openwrt"
-        rm -rf *
-        cd ..
+	echo "YETI: could not find correct remote for openwrt, clearing openwrt"
+	cd ..
+	rm -rf openwrt
 
 	echo "YETI: Cloning OpenWRT from git://git.openwrt.org/openwrt.git to openwrt"
 	git clone git://git.openwrt.org/openwrt.git openwrt
@@ -100,6 +100,63 @@ then
 fi
 
 cd $YETIDIR
+if [ $? -ne 0 ]; then
+	echo "Could not change back to $YETIDIR"
+	exit 1
+fi
+
+if [ ! -d "openwrt-misc" ];
+then
+	echo "YETI: could not find openwrt-misc directory, making now"
+	mkdir -p openwrt-misc
+fi
+
+cd openwrt-misc
+if [ $? -ne 0 ]; then
+	echo "Could not cd to openwrt-msic"
+	exit 1
+fi
+
+OPENWRTMISCREMOTE="origin	git@github.com:GBert/openwrt-misc.git (fetch)"
+MISCREMOTE=$(git remote -v | grep fetch)
+
+if [ "$OPENWRTMISCREMOTE" != "$MISCREMOTE" ];
+then
+	echo "YETI: could not find correct remote for openwrt-misc, clearing openwrt"
+	cd ..
+	rm -rf openwrt-misc
+
+	echo "YETI: Cloning OpenWRT from git@github.com:GBert/openwrt-misc.git to openwrt-misc"
+	git clone git@github.com:GBert/openwrt-misc.git
+
+	if [ $? -ne 0 ];
+	then
+		echo "YETI: Failed to clone OpenWRT-misc"
+		exit 1;
+	fi
+
+	cd openwrt
+else
+	echo "YETI: Found OpenWRT-misc git repo, fetching latest"
+	git fetch
+
+	if [ $? -ne 0 ];
+	then
+		echo "YETI: Failed to fetch latest"
+		exit 1;
+	fi
+
+	git rebase
+	
+	if [ $? -ne 0 ];
+	then
+		git stash
+		git rebase
+		git stash pop
+	fi
+fi
+
+cd $YETIDIR
 
 echo "YETI: Updating mac80211.sh for default monitor mode"
 cp -fpv $YETIDIR/openwrt-files/mac80211.sh $YETIDIR/openwrt/package/kernel/mac80211/files/lib/wifi/mac80211.sh
@@ -119,6 +176,17 @@ cp -fpv $YETIDIR/wifi-sniffer/logwifiids $YETIDIR/openwrt/package/base-files/fil
 
 echo "YETI: Updating make configuration"
 cp -fpv $YETIDIR/openwrt-files/.config $YETIDIR/openwrt
+
+echo "YETI: Updating GPS configurations and build"
+cp -a $YETIDIR/gps/gpsd $YETIDIR/openwrt/package/network/
+cp -a $YETIDIR/openwrt-misc/gpio-test $YETIDIR/openwrt/package/kernel/
+cd $YETIDIR/openwrt
+git checkout target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c
+patch -p1 -i $YETIDIR/gps/999-Carambola-PPS-GPIO.patch
+if [ $? -ne 0 ]; then
+	echo "Error applying PPS gpio pin patch"
+	exit 1
+fi 
 
 echo "YETI: Patched OpenWRT build!  Making now"
 cd $YETIDIR/openwrt

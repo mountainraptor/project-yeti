@@ -1,0 +1,65 @@
+diff --git a/target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c b/target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c
+index babe101..6a4ff18 100644
+--- a/target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c
++++ b/target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c
+@@ -10,6 +10,8 @@
+ 
+ #include <asm/mach-ath79/ath79.h>
+ #include <asm/mach-ath79/ar71xx_regs.h>
++#include <linux/pps-gpio.h>
++#include <linux/platform_device.h>
+ #include "common.h"
+ #include "dev-eth.h"
+ #include "dev-gpio-buttons.h"
+@@ -23,6 +25,7 @@
+ #define CARAMBOLA2_GPIO_LED_WLAN		0
+ #define CARAMBOLA2_GPIO_LED_ETH0		14
+ #define CARAMBOLA2_GPIO_LED_ETH1		13
++#define CARAMBOLA2_GPIO_PPS_PIN		12
+ 
+ #define CARAMBOLA2_GPIO_BTN_JUMPSTART		11
+ 
+@@ -61,6 +64,35 @@ static struct gpio_keys_button carambola2_gpio_keys[] __initdata = {
+ 	},
+ };
+ 
++/* PPS-GPIO platform data */
++static struct pps_gpio_platform_data pps_gpio_info = 
++{
++	.assert_falling_edge = false,
++	.capture_clear= false,
++	.gpio_pin = CARAMBOLA2_GPIO_PPS_PIN,
++	.gpio_label = "PPS",
++};
++
++static struct platform_device pps_gpio_device = 
++{
++	.name = "pps-gpio",
++	.id = -1,
++	.dev = 
++		{
++			.platform_data = &pps_gpio_info
++		},
++};
++
++static void pps_init(void)
++{
++	int err;
++	
++	err = platform_device_register(&pps_gpio_device);
++	if (err) {
++		pr_warning("Could not register PPS_GPIO device");
++	}
++}
++
+ static void __init carambola2_common_setup(void)
+ {
+ 	u8 *art = (u8 *) KSEG1ADDR(0x1fff0000);
+@@ -98,6 +130,7 @@ static void __init carambola2_setup(void)
+ 	ath79_register_gpio_keys_polled(-1, CARAMBOLA2_KEYS_POLL_INTERVAL,
+ 					ARRAY_SIZE(carambola2_gpio_keys),
+ 					carambola2_gpio_keys);
++	pps_init();
+ 	ath79_register_usb();
+ }
+ 
