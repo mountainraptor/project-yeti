@@ -180,6 +180,7 @@ cp -fpv $YETIDIR/openwrt-files/.config $YETIDIR/openwrt
 echo "YETI: Updating GPS configurations and build"
 cp -a $YETIDIR/gps/gpsd $YETIDIR/openwrt/package/network/
 cp -a $YETIDIR/openwrt-misc/gpio-test $YETIDIR/openwrt/package/kernel/
+cp $YETIDIR/openwrt-misc/gpio-test/src/patches-3.18/728-MIPS-ath79-add-gpio-irq.patch $YETIDIR/openwrt/target/linux/ar71xx/patches-3.18/
 cd $YETIDIR/openwrt
 git checkout target/linux/ar71xx/files/arch/mips/ath79/mach-carambola2.c
 patch -p1 -i $YETIDIR/gps/999-Carambola-PPS-GPIO.patch
