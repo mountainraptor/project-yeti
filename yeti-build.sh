@@ -174,16 +174,6 @@ echo "YETI: Installing secret sauce"
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids.py $YETIDIR/openwrt/package/base-files/files/sbin/
 cp -fpv $YETIDIR/wifi-sniffer/logwifiids $YETIDIR/openwrt/package/base-files/files/etc/init.d/
 
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-echo "YETI: Temoporary Open SSL patch-----------------------------------"
-cp -fpv $YETIDIR/openwrt-files/Makefile $YETIDIR/openwrt/package/libs/openssl/Makefile
-
-
 echo "YETI: Updating make configuration"
 cp -fpv $YETIDIR/openwrt-files/.config $YETIDIR/openwrt
 
