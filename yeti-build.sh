@@ -77,7 +77,7 @@ else
 	fi
 fi
 
-#git reset --hard cb8b797
+git reset --hard 28239659a10cf96da8a929c7bcddd3775d110ed1
 
 echo "YETI: Updating remote feeds"
 
